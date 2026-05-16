@@ -80,19 +80,19 @@ async def startup_event() -> None:
 
     if settings.warm_model_on_startup:
         logger.info(
-            "🔥 WARM_MODEL_ON_STARTUP is enabled — pre-loading the AI model now..."
+            "🔥 WARM_MODEL_ON_STARTUP is enabled — starting background AI model warmup..."
         )
 
         try:
-            get_detector().warmup()
+            get_detector().warmup(background=True)
 
             logger.info(
-                "✅ Fashionpedia detector warmed successfully during startup — the first request will be fast."
+                "✅ Fashionpedia detector warmup thread started during startup — the first request should be faster."
             )
 
         except Exception:
             logger.exception(
-                "❌ Failed to warm the Fashionpedia detector during startup. "
+                "❌ Failed to start background warmup for the Fashionpedia detector during startup. "
                 "The model will attempt to load on the first request instead."
             )
 

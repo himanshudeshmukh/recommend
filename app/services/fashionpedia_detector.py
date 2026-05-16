@@ -59,6 +59,11 @@ class FashionpediaDetector:
         # Initialize the device slot before lazy loading.
         self._device: Any | None = None
 
+        # Background loading helpers.
+        self._loaded_event = threading.Event()
+        self._loading_thread: threading.Thread | None = None
+        self._load_error: Exception | None = None
+
         logger.info(
             "FashionpediaDetector created — model: '%s', device preference: '%s'.",
             settings.fashionpedia_model_name,
@@ -120,6 +125,161 @@ class FashionpediaDetector:
 
         return torch_module.device(chosen)
 
+    def _load_model(self) -> None:
+        """Load the detector model and processor into memory."""
+
+        with self._load_lock:
+            if self._processor is not None and self._model is not None:
+                logger.debug("Model already loaded — skipping reload.")
+                self._loaded_event.set()
+                return
+
+            self._load_error = None
+            self._loaded_event.clear()
+
+            logger.info(
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            )
+        logger.info(
+            "🤖 Loading the AI fashion detection model..."
+        )
+        logger.info(
+            "Model name: '%s'",
+            self._settings.fashionpedia_model_name,
+        )
+        logger.info(
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        )
+
+        try:
+            # Lazy imports.
+            logger.info(
+                "Importing PyTorch (this may take a moment)..."
+            )
+            import torch
+
+            logger.info(
+                "Importing Transformers library..."
+            )
+
+            from transformers import (
+                AutoImageProcessor,
+                AutoModelForObjectDetection,
+            )
+
+            logger.info(
+                "✓ PyTorch and Transformers imported successfully."
+            )
+
+        except ImportError as exc:
+            logger.error(
+                "Failed to import torch/transformers."
+            )
+
+            self._load_error = RuntimeError(
+                "The detector backend requires `transformers` and `torch`."
+            )
+            self._loaded_event.set()
+            return
+
+        import os
+        import time
+
+        # Set environment variable to show download progress.
+        os.environ["HF_HUB_VERBOSE"] = "1"
+
+        logger.info(
+            "Step 1/4: Downloading and loading image processor..."
+        )
+        logger.info(
+            "Note: First download may take several minutes (~100-300 MB)."
+        )
+
+        start_time = time.time()
+
+        try:
+            self._processor = (
+                AutoImageProcessor.from_pretrained(
+                    self._settings.fashionpedia_model_name,
+                )
+            )
+
+            elapsed = time.time() - start_time
+            logger.info(
+                "✓ Image processor loaded successfully (%.1f seconds).",
+                elapsed,
+            )
+
+        except Exception as exc:
+            logger.exception(
+                "Failed to load image processor from Hugging Face."
+            )
+            self._load_error = RuntimeError(
+                "Could not download or load the image processor."
+            )
+            self._loaded_event.set()
+            return
+
+        logger.info(
+            "Step 2/4: Downloading and loading object detection model..."
+        )
+        logger.info(
+            "Note: This is the largest component (~300-500 MB)."
+        )
+
+        start_time = time.time()
+
+        try:
+            self._model = (
+                AutoModelForObjectDetection.from_pretrained(
+                    self._settings.fashionpedia_model_name,
+                )
+            )
+
+            elapsed = time.time() - start_time
+            logger.info(
+                "✓ Detection model loaded successfully (%.1f seconds).",
+                elapsed,
+            )
+
+        except Exception as exc:
+            logger.exception(
+                "Failed to load detection model from Hugging Face."
+            )
+            self._load_error = RuntimeError(
+                "Could not download or load the detection model."
+            )
+            self._loaded_event.set()
+            return
+
+        logger.info(
+            "Step 3/4: Selecting compute device..."
+        )
+
+        self._device = self._resolve_device(torch)
+
+        logger.info(
+            "Step 4/4: Moving model to device..."
+        )
+
+        self._model.to(self._device)
+        self._model.eval()
+
+        logger.info(
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        )
+
+        logger.info(
+            "✅ Fashion detection model ready on device: '%s'.",
+            self._device,
+        )
+
+        logger.info(
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        )
+
+        self._loaded_event.set()
+
     def _ensure_loaded(self) -> None:
         """Load the detector model and processor exactly once."""
 
@@ -127,110 +287,57 @@ class FashionpediaDetector:
             logger.debug("Model already loaded — skipping reload.")
             return
 
-        # Serialize model loading.
-        with self._load_lock:
-            if self._processor is not None and self._model is not None:
-                return
-
+        if self._loading_thread is not None and self._loading_thread.is_alive():
             logger.info(
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                "Waiting for background model warmup to complete..."
             )
-            logger.info(
-                "🤖 Loading the AI fashion detection model..."
-            )
-            logger.info(
-                "Model name: '%s'",
-                self._settings.fashionpedia_model_name,
-            )
-            logger.info(
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            )
+            self._loaded_event.wait()
 
-            try:
-                # Lazy imports.
-                import torch
+        if self._load_error is not None:
+            raise self._load_error
 
-                from transformers import (
-                    AutoImageProcessor,
-                    AutoModelForObjectDetection,
-                )
+        if self._processor is None or self._model is None:
+            self._load_model()
 
-                logger.info(
-                    "PyTorch and Transformers imported successfully."
-                )
+        if self._load_error is not None:
+            raise self._load_error
 
-            except ImportError as exc:
-                logger.error(
-                    "Failed to import torch/transformers."
-                )
-
-                raise RuntimeError(
-                    "The detector backend requires "
-                    "`transformers` and `torch`."
-                ) from exc
-
-            logger.info(
-                "Step 1/4: Loading image processor..."
-            )
-
-            self._processor = (
-                AutoImageProcessor.from_pretrained(
-                    self._settings.fashionpedia_model_name
-                )
-            )
-
-            logger.info(
-                "Image processor loaded successfully."
-            )
-
-            logger.info(
-                "Step 2/4: Loading object detection model..."
-            )
-
-            self._model = (
-                AutoModelForObjectDetection.from_pretrained(
-                    self._settings.fashionpedia_model_name
-                )
-            )
-
-            logger.info(
-                "Detection model loaded successfully."
-            )
-
-            logger.info(
-                "Step 3/4: Selecting compute device..."
-            )
-
-            self._device = self._resolve_device(torch)
-
-            logger.info(
-                "Step 4/4: Moving model to device..."
-            )
-
-            self._model.to(self._device)
-            self._model.eval()
-
-            logger.info(
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            )
-
-            logger.info(
-                "✅ Fashion detection model ready on device: '%s'.",
-                self._device,
-            )
-
-            logger.info(
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            )
-
-    def warmup(self) -> None:
+    def warmup(self, background: bool = True) -> None:
         """Warm the model so the first live request is faster."""
 
+        if self._processor is not None and self._model is not None:
+            logger.info("🔥 Fashionpedia model is already warmed.")
+            return
+
+        if background:
+            if self._loading_thread is not None and self._loading_thread.is_alive():
+                logger.info(
+                    "🔥 Background warmup already in progress — continuing to load..."
+                )
+                return
+
+            self._load_error = None
+            self._loaded_event.clear()
+
+            logger.info(
+                "🔥 Starting background fashion detector warmup..."
+            )
+            self._loading_thread = threading.Thread(
+                target=self._load_model,
+                name="FashionpediaWarmupThread",
+                daemon=True,
+            )
+            self._loading_thread.start()
+            return
+
         logger.info(
-            "🔥 Warming up the fashion detector..."
+            "🔥 Warming up the fashion detector in the foreground..."
         )
 
-        self._ensure_loaded()
+        self._load_model()
+
+        if self._load_error is not None:
+            raise self._load_error
 
         logger.info(
             "🔥 Warmup complete."
