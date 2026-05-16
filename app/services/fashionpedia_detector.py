@@ -214,9 +214,18 @@ class FashionpediaDetector:
             logger.exception(
                 "Failed to load image processor from Hugging Face."
             )
-            self._load_error = RuntimeError(
-                "Could not download or load the image processor."
-            )
+
+            msg = str(exc) or ""
+
+            if "Torchvision" in msg or "torchvision" in msg:
+                self._load_error = RuntimeError(
+                    "AutoImageProcessor requires the `torchvision` package.\n"
+                    "Please install a compatible `torchvision` for your PyTorch build (see: https://pytorch.org/get-started/locally/)."
+                )
+            else:
+                self._load_error = RuntimeError(
+                    "Could not download or load the image processor."
+                )
             self._loaded_event.set()
             return
 
