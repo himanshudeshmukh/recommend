@@ -220,7 +220,7 @@ class _ImageAnalysisTabState extends State<ImageAnalysisTab> {
       final request = http.MultipartRequest('POST', uri);
 
       // Attach the image file with proper content type
-      final imageFile = http.MultipartFile.fromPath(
+      final imageFile = await http.MultipartFile.fromPath(
         'image',
         _pickedImage!.path,
         contentType: MediaType('image', 'jpeg'),
@@ -287,9 +287,15 @@ class _ImageAnalysisTabState extends State<ImageAnalysisTab> {
 
         _result = buffer.toString();
       } else {
-        final data = jsonDecode(response.body);
-        _result = '❌ HTTP ${response.statusCode}\n'
-            'Error: ${data['error'] ?? data['detail'] ?? response.body}';
+        final body = response.body;
+        String errorMessage;
+        try {
+          final data = jsonDecode(body);
+          errorMessage = data['error'] ?? data['detail'] ?? data.toString();
+        } catch (_) {
+          errorMessage = body;
+        }
+        _result = '❌ HTTP ${response.statusCode}\nError: $errorMessage';
       }
     } catch (e) {
       _result = '❌ Error:\n$e';
@@ -500,7 +506,7 @@ class _OutfitRecommendTabState extends State<OutfitRecommendTab> {
 
       // Optional reference image
       if (_refImage != null) {
-        final imageFile = http.MultipartFile.fromPath(
+        final imageFile = await http.MultipartFile.fromPath(
           'image',
           _refImage!.path,
           contentType: MediaType('image', 'jpeg'),
@@ -551,9 +557,15 @@ class _OutfitRecommendTabState extends State<OutfitRecommendTab> {
 
         _result = buffer.toString();
       } else {
-        final data = jsonDecode(response.body);
-        _result = '❌ HTTP ${response.statusCode}\n'
-            'Error: ${data['error'] ?? data['detail'] ?? response.body}';
+        final body = response.body;
+        String errorMessage;
+        try {
+          final data = jsonDecode(body);
+          errorMessage = data['error'] ?? data['detail'] ?? data.toString();
+        } catch (_) {
+          errorMessage = body;
+        }
+        _result = '❌ HTTP ${response.statusCode}\nError: $errorMessage';
       }
     } catch (e) {
       _result = '❌ Error:\n$e';

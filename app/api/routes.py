@@ -219,10 +219,10 @@ def _error_response(
  
      # Build the response payload using the ErrorResponse schema.
      body = ErrorResponse(
-         status_code=status_code,
-         error=error,
-         detail=detail,
-         request_id=request_id,
+         Status_code=status_code,
+         Error=error,
+         Detail=detail,
+         Request_id=request_id,
      )
  
      # Log the error at the appropriate severity level.
@@ -395,22 +395,22 @@ def _build_context(
  
      # Build the typed context object with all fields normalized.
      ctx = NormalizedUserContext(
-         user_id=_normalize_text(user_id),
-         gender=_normalize_text(gender),
-         occasion=_normalize_text(occasion),
-         weather=_normalize_text(weather),
-         temperature_celsius=temperature_celsius,
-         dress_code=_normalize_text(dress_code),
-         style_preferences=_split_csv_field(style_preferences),
-         color_preferences=_split_csv_field(color_preferences),
-         avoid_items=_split_csv_field(avoid_items),
+         User_id=_normalize_text(user_id),
+         Gender=_normalize_text(gender),
+         Occasion=_normalize_text(occasion),
+         Weather=_normalize_text(weather),
+         Temperature_celsius=temperature_celsius,
+         Dress_code=_normalize_text(dress_code),
+         Style_preferences=_split_csv_field(style_preferences),
+         Color_preferences=_split_csv_field(color_preferences),
+         Avoid_items=_split_csv_field(avoid_items),
      )
  
      # Log the final normalized context for verification.
      logger.info("📋 User context built successfully:")
-     logger.info("   • occasion='%s', weather='%s', gender='%s'", ctx.occasion, ctx.weather, ctx.gender)
+     logger.info("   • occasion='%s', weather='%s', gender='%s'", ctx.Occasion, ctx.Weather, ctx.Gender)
      logger.info("   • %d style prefs, %d color prefs, %d avoid items",
-                 len(ctx.style_preferences), len(ctx.color_preferences), len(ctx.avoid_items))
+                 len(ctx.Style_preferences), len(ctx.Color_preferences), len(ctx.Avoid_items))
      return ctx
  
  
@@ -905,12 +905,12 @@ async def analyze_image(
          elapsed = time.time() - start_time
          logger.info("[%s] ═══════════════════════════════════════════════════════", request_id)
          logger.info("[%s] ✅ /images/analyze completed successfully in %.2fs", request_id, elapsed)
-         logger.info("[%s]    • %d fashion item(s) detected by the AI model", request_id, len(result.fashionpedia_detections))
-         logger.info("[%s]    • Predicted style: '%s'", request_id, result.outfit_prediction.predicted_style_label)
-         logger.info("[%s]    • Occasion alignment: '%s'", request_id, result.outfit_prediction.occasion_alignment)
-         logger.info("[%s]    • Weather alignment: '%s'", request_id, result.outfit_prediction.weather_alignment)
-         logger.info("[%s]    • Confidence: %.1f%%", request_id, result.outfit_prediction.confidence * 100)
-         logger.info("[%s]    • Quality warnings: %s", request_id, result.quality_metadata.quality_warnings or "(none)")
+         logger.info("[%s]    • %d fashion item(s) detected by the AI model", request_id, len(result.Fashionpedia_detections))
+         logger.info("[%s]    • Predicted style: '%s'", request_id, result.Outfit_prediction.Predicted_style_label)
+         logger.info("[%s]    • Occasion alignment: '%s'", request_id, result.Outfit_prediction.Occasion_alignment)
+         logger.info("[%s]    • Weather alignment: '%s'", request_id, result.Outfit_prediction.Weather_alignment)
+         logger.info("[%s]    • Confidence: %.1f%%", request_id, result.Outfit_prediction.Confidence * 100)
+         logger.info("[%s]    • Quality warnings: %s", request_id, result.Quality_metadata.Quality_warnings or "(none)")
          logger.info("[%s] ═══════════════════════════════════════════════════════", request_id)
          return result
  
@@ -1249,21 +1249,21 @@ async def recommend_outfit(
          elapsed = time.time() - start_time
          logger.info("[%s] ═══════════════════════════════════════════════════════", request_id)
          logger.info("[%s] ✅ /outfits/recommend completed successfully in %.2fs", request_id, elapsed)
-         logger.info("[%s]    • %d outfit(s) recommended", request_id, len(result.recommendations))
-         for rec in result.recommendations:
+         logger.info("[%s]    • %d outfit(s) recommended", request_id, len(result.Recommendations))
+         for rec in result.Recommendations:
              logger.info("[%s]    • Rank #%d: '%s' (style: %s, confidence: %.0f%%)",
-                         request_id, rec.rank, rec.title, rec.style_label, rec.confidence * 100)
-             logger.info("[%s]      Primary items: %s", request_id, rec.primary_items)
-             logger.info("[%s]      Optional items: %s", request_id, rec.optional_items)
-             logger.info("[%s]      Palette: %s", request_id, rec.palette_direction)
-         if result.deprioritized_items:
-             logger.info("[%s]    • Deprioritized items: %s", request_id, result.deprioritized_items)
-         if result.reference_image_summary:
+                         request_id, rec.Rank, rec.Title, rec.Style_label, rec.Confidence * 100)
+             logger.info("[%s]      Primary items: %s", request_id, rec.Primary_items)
+             logger.info("[%s]      Optional items: %s", request_id, rec.Optional_items)
+             logger.info("[%s]      Palette: %s", request_id, rec.Palette_direction)
+         if result.Deprioritized_items:
+             logger.info("[%s]    • Deprioritized items: %s", request_id, result.Deprioritized_items)
+         if result.Reference_image_summary:
              logger.info("[%s]    • Reference image style: '%s', labels: %s, colors: %s",
                          request_id,
-                         result.reference_image_summary.predicted_style_label,
-                         result.reference_image_summary.detected_categories[:5],
-                         result.reference_image_summary.dominant_colors[:3])
+                         result.Reference_image_summary.Predicted_style_label,
+                         result.Reference_image_summary.Detected_categories[:5],
+                         result.Reference_image_summary.Dominant_colors[:3])
          logger.info("[%s] ═══════════════════════════════════════════════════════", request_id)
          return result
  

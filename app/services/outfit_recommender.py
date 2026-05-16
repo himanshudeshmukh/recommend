@@ -308,14 +308,14 @@ class OutfitRecommender:
         if weather_band in template.weather_bands:
             score += 4.0
 
-        if context.gender == "female":
+        if context.Gender == "female":
             if any(
                 item in template.primary_items
                 for item in {"dress", "jumpsuit"}
             ):
                 score += 0.5
 
-        if context.gender == "male":
+        if context.Gender == "male":
             if any(
                 item in template.optional_items
                 for item in {"tie", "belt"}
@@ -341,12 +341,12 @@ class OutfitRecommender:
         logger.info("Starting recommendation engine")
 
         occasion_bucket = self._normalize_occasion_bucket(
-            context.occasion
+            context.Occasion
         )
 
         weather_band = self._infer_weather_band(
-            context.weather,
-            context.temperature_celsius,
+            context.Weather,
+            context.Temperature_celsius,
         )
 
         reference_summary = None
@@ -398,22 +398,22 @@ class OutfitRecommender:
         ):
             primary_items = self._replace_avoided_items(
                 list(template.primary_items),
-                context.avoid_items,
+                context.Avoid_items,
             )
 
             optional_items = self._replace_avoided_items(
                 list(template.optional_items),
-                context.avoid_items,
+                context.Avoid_items,
             )
 
             style_details = self._replace_avoided_items(
                 list(template.style_details),
-                context.avoid_items,
+                context.Avoid_items,
             )
 
             palette_direction = (
-                self._unique(context.color_preferences)
-                if context.color_preferences
+                self._unique(context.Color_preferences)
+                if context.Color_preferences
                 else self._unique(reference_colors)
                 if reference_colors
                 else list(template.palette_direction)
@@ -426,20 +426,20 @@ class OutfitRecommender:
 
             recommendations.append(
                 OutfitRecommendation(
-                    rank=rank,
-                    title=template.title,
-                    style_label=template.style_label,
-                    confidence=confidence,
-                    primary_items=self._unique(primary_items),
-                    optional_items=self._unique(optional_items),
-                    style_details=self._unique(style_details),
-                    attribute_direction=self._build_attribute_direction(
+                    Rank=rank,
+                    Title=template.title,
+                    Style_label=template.style_label,
+                    Confidence=confidence,
+                    Primary_items=self._unique(primary_items),
+                    Optional_items=self._unique(optional_items),
+                    Style_details=self._unique(style_details),
+                    Attribute_direction=self._build_attribute_direction(
                         template
                     ),
-                    palette_direction=self._unique(
+                    Palette_direction=self._unique(
                         palette_direction
                     ),
-                    reasoning=[
+                    Reasoning=[
                         f"Matches the '{occasion_bucket}' occasion.",
                         f"Suitable for '{weather_band}' weather.",
                     ],
@@ -447,7 +447,7 @@ class OutfitRecommender:
             )
 
         deprioritized_items = self._unique(
-            context.avoid_items
+            context.Avoid_items
         )
 
         notes = [
@@ -456,9 +456,9 @@ class OutfitRecommender:
         ]
 
         return RecommendOutfitResponse(
-            context=context,
-            reference_image_summary=reference_summary,
-            recommendations=recommendations,
-            deprioritized_items=deprioritized_items,
-            notes=notes,
+            Context=context,
+            Reference_image_summary=reference_summary,
+            Recommendations=recommendations,
+            Deprioritized_items=deprioritized_items,
+            Notes=notes,
         )

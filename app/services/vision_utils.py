@@ -354,10 +354,10 @@ def extract_dominant_colors(
         # Append the normalized color entry to the result list.
         named_colors.append(
             NamedColor(
-                name=color_name,
-                rgb=rgb_tuple,
-                hex=rgb_to_hex(rgb_tuple),
-                coverage=coverage,
+                Name=color_name,
+                Rgb=rgb_tuple,
+                Hex=rgb_to_hex(rgb_tuple),
+                Coverage=coverage,
             )
         )
 
@@ -447,19 +447,19 @@ def build_technical_metadata(image: Image.Image) -> TechnicalMetadata:
 
     # Build and return the strongly typed metadata payload.
     return TechnicalMetadata(
-        width=width,
-        height=height,
-        aspect_ratio=round(width / max(height, 1), 4),
-        orientation=orientation,
-        megapixels=megapixels,
-        mode=image.mode,
-        has_alpha=has_alpha,
-        is_animated=frame_count > 1,
-        frame_count=frame_count,
-        icc_profile_present="icc_profile" in image.info,
-        exif_present=bool(exif_summary),
-        dpi=dpi_value,
-        exif_summary=exif_summary,
+        Width=width,
+        Height=height,
+        Aspect_ratio=round(width / max(height, 1), 4),
+        Orientation=orientation,
+        Megapixels=megapixels,
+        Mode=image.mode,
+        Has_alpha=has_alpha,
+        Is_animated=frame_count > 1,
+        Frame_count=frame_count,
+        Icc_profile_present="icc_profile" in image.info,
+        Exif_present=bool(exif_summary),
+        Dpi=dpi_value,
+        Exif_summary=exif_summary,
     )
 
 
@@ -608,14 +608,14 @@ def build_quality_metadata(
 
     # Return the typed quality payload.
     return QualityMetadata(
-        brightness_mean=round(brightness_mean, 4),
-        contrast_stddev=round(contrast_stddev, 4),
-        entropy=round(entropy_value, 4),
-        sharpness_laplacian_variance=round(
+        Brightness_mean=round(brightness_mean, 4),
+        Contrast_stddev=round(contrast_stddev, 4),
+        Entropy=round(entropy_value, 4),
+        Sharpness_laplacian_variance=round(
             laplacian_variance,
             4,
         ),
-        edge_density=round(edge_density, 4),
-        dominant_colors=dominant_colors,
-        quality_warnings=quality_warnings,
+        Edge_density=round(edge_density, 4),
+        Dominant_colors=dominant_colors,
+        Quality_warnings=quality_warnings,
     )
